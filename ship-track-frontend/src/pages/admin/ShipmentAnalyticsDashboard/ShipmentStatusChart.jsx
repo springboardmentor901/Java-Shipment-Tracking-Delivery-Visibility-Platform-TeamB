@@ -8,16 +8,43 @@ import {
 } from "recharts";
 
 const ShipmentStatusChart = ({ data = [] }) => {
-  const chartData =
-    data.length > 0
-      ? data
-      : [
-          { name: "Delivered", value: 45 },
-          { name: "In Transit", value: 25 },
-          { name: "Pending", value: 15 },
-          { name: "Cancelled", value: 10 },
-          { name: "Delayed", value: 5 },
-        ];
+
+const chartData = [
+  {
+    name: "Delivered",
+    value: data.filter(
+      (shipment) => shipment.status?.toUpperCase() === "DELIVERED"
+    ).length,
+  },
+  {
+    name: "In Transit",
+    value: data.filter(
+      (shipment) =>
+        ["IN_TRANSIT", "IN TRANSIT"].includes(
+          shipment.status?.toUpperCase()
+        )
+    ).length,
+  },
+  {
+    name: "Pending",
+    value: data.filter(
+      (shipment) => shipment.status?.toUpperCase() === "PENDING"
+    ).length,
+  },
+  {
+    name: "Cancelled",
+    value: data.filter(
+      (shipment) => shipment.status?.toUpperCase() === "CANCELLED"
+    ).length,
+  },
+  {
+    name: "Delayed",
+    value: data.filter(
+      (shipment) => shipment.status?.toUpperCase() === "DELAYED"
+    ).length,
+  },
+];
+
 
   const COLORS = [
     "#10b981",

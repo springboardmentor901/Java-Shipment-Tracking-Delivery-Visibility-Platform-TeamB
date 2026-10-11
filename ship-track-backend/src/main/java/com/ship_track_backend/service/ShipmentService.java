@@ -64,13 +64,16 @@ private ShipmentLocationRepository shipmentLocationRepository;
     @Transactional
     public void createShipment(CreateShipmentData createShipmentData) {
 
-        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+       String email = SecurityContextHolder.getContext()
+        .getAuthentication().getName();
 
-        UserEntity sender = userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND,
-                        "User not found"
-                ));
+System.out.println("Logged-in email: " + email);
+
+UserEntity sender = userRepository.findByEmail(email)
+        .orElseThrow(() -> new ResponseStatusException(
+                HttpStatus.NOT_FOUND,
+                "User not found"
+        ));
 
         ShipmentEntity shipment = new ShipmentEntity();
         
@@ -96,6 +99,14 @@ private ShipmentLocationRepository shipmentLocationRepository;
 
         shipment.setDeliveryLatitude(delivery.getLatitude());
         shipment.setDeliveryLongitude(delivery.getLongitude());
+
+        System.out.println("Pickup coordinates: "
+        + pickup.getLatitude() + ", "
+        + pickup.getLongitude());
+
+System.out.println("Delivery coordinates: "
+        + delivery.getLatitude() + ", "
+        + delivery.getLongitude());
         
         shipment.setSender(sender);
         shipment.setReceiverName( createShipmentData.getReceiverName());

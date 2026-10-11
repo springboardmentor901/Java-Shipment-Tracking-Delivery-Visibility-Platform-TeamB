@@ -54,7 +54,7 @@ const AdminShipmentDetails = () => {
 
         if (response.data.success === true) {
           const shipmentData = response.data.data;
-
+console.log("SHIPMENT DETAILS RESPONSE:", shipmentData);
           setShipment(shipmentData);
 
           /*

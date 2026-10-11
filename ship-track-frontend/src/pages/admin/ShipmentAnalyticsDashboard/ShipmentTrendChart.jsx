@@ -14,34 +14,32 @@ const ShipmentTrendChart = ({
   shipments,
 }) => {
 
+  
   const groupedData = [];
 
   shipments.forEach((shipment) => {
+    const rawDate = shipment.date || shipment.createdAt;
+
+    if (!rawDate) return;
+
+    const date = new Date(rawDate).toLocaleDateString("en-CA");
 
     const existing = groupedData.find(
-      (item) =>
-        item.date === shipment.date
+      (item) => item.date === date
     );
 
     if (existing) {
-
       existing.shipments += 1;
-
     } else {
-
       groupedData.push({
-        date: shipment.date,
+        date: date,
         shipments: 1,
       });
-
     }
-
   });
 
   const data = groupedData.sort(
-    (a, b) =>
-      new Date(a.date) -
-      new Date(b.date)
+    (a, b) => new Date(a.date) - new Date(b.date)
   );
 
   return (

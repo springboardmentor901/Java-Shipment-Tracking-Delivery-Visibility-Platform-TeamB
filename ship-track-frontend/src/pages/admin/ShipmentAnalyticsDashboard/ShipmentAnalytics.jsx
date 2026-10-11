@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import "./ShipmentAnalytics.css";
 
 import ShipmentAnalyticsFilters from "./ShipmentAnalyticsFilters";
@@ -6,61 +6,89 @@ import AnalyticsSummaryCards from "./AnalyticsSummaryCards";
 import ShipmentStatusChart from "./ShipmentStatusChart";
 import ShipmentTrendChart from "./ShipmentTrendChart";
 
-import { shipmentData } from "./ShipmentAnalyticsData";
+import { getAdminShipmentsApi } from "../../../services/adminService";
 
 const ShipmentAnalytics = () => {
   const [status, setStatus] = useState("All");
   const [carrier, setCarrier] = useState("All");
   const [period, setPeriod] = useState("All");
+  const [shipmentData, setShipmentData] = useState([]);
+
+  useEffect(() => {
+
+  const fetchShipments = async () => {
+    try {
+      const response = await getAdminShipmentsApi();
+
+      console.log("Analytics API response:", response);
+
+      const result = response.data?.data;
+
+      console.log("Analytics API data:", result);
+
+      setShipmentData(Array.isArray(result) ? result : []);
+    } catch (error) {
+      console.error("Error fetching analytics shipments:", error);
+      setShipmentData([]);
+    }
+  };
+
+  fetchShipments();
+}, []);
+
+
 
   // Filter shipments
-  const filteredShipments = useMemo(() => {
-    let data = [...shipmentData];
+const filteredShipments = useMemo(() => {
+  let data = [...shipmentData];
 
-    // Status filter
-    if (status !== "All") {
-      data = data.filter(
-        (shipment) => shipment.status === status
-      );
-    }
+  // Status filter
+  if (status !== "All") {
+    data = data.filter(
+      (shipment) => shipment.status === status
+    );
+  }
 
-    // Carrier filter
-    if (carrier !== "All") {
-      data = data.filter(
-        (shipment) => shipment.carrier === carrier
-      );
-    }
+  // Carrier filter
+  if (carrier !== "All") {
+    data = data.filter(
+      (shipment) => shipment.carrier === carrier
+    );
+  }
 
-    // Period filter
-    if (period !== "All") {
-      data = data.filter(
-        (shipment) =>
-          shipment.daysAgo <= Number(period)
-      );
-    }
+  // Period filter using createdAt
+  if (period !== "All") {
+    const days = Number(period);
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - days);
 
-    return data;
-  }, [status, carrier, period]);
+    data = data.filter((shipment) => {
+      if (!shipment.createdAt) return false;
+
+      return new Date(shipment.createdAt) >= cutoff;
+    });
+  }
+
+  return data;
+}, [shipmentData, status, carrier, period]);
 
   // Summary values
-  const summary = {
-    total: filteredShipments.length,
+const summary = {
+  total: filteredShipments.length,
 
-    delivered: filteredShipments.filter(
-      (shipment) =>
-        shipment.status === "Delivered"
-    ).length,
+  delivered: filteredShipments.filter(
+    (shipment) => shipment.status === "DELIVERED"
+  ).length,
 
-    delayed: filteredShipments.filter(
-      (shipment) =>
-        shipment.status === "Delayed"
-    ).length,
+  delayed: filteredShipments.filter(
+    (shipment) => shipment.status === "DELAYED"
+  ).length,
 
-    inTransit: filteredShipments.filter(
-      (shipment) =>
-        shipment.status === "In Transit"
-    ).length,
-  };
+  inTransit: filteredShipments.filter(
+    (shipment) => shipment.status === "IN_TRANSIT"
+  ).length,
+};
+
 
   // Clear filters
   const clearFilters = () => {
@@ -115,9 +143,10 @@ const ShipmentAnalytics = () => {
 
       <div className="analytics-charts">
 
-        <ShipmentStatusChart
-          shipments={filteredShipments}
-        />
+       
+       <ShipmentStatusChart
+  data={filteredShipments}
+/>
 
         <ShipmentTrendChart
           shipments={filteredShipments}
@@ -164,7 +193,7 @@ const ShipmentAnalytics = () => {
 
                     <td>
                       <strong>
-                        {shipment.trackingId}
+                       {shipment.trackingNumber}
                       </strong>
                     </td>
 
@@ -185,7 +214,9 @@ const ShipmentAnalytics = () => {
                     </td>
 
                     <td>
-                      {shipment.date}
+                     {shipment.createdAt
+  ? new Date(shipment.createdAt).toLocaleDateString()
+  : "N/A"}
                     </td>
 
                   </tr>
