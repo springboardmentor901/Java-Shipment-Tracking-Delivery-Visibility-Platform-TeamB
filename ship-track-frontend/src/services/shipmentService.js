@@ -6,6 +6,10 @@ export const createShipmentApi = async (shipmentData) => {
   return await axiosInstance.post(  API_END_POINTS.CREATE_SHIPMENT, shipmentData );
 };
 
+export const getAdminUsersApi = async () => {
+  return await axiosInstance.get("/api/admin/users");
+};
+
 export const getShipmentsApi = async () => {
   return await axiosInstance.get( API_END_POINTS.GET_SHIPMENTS );
 };

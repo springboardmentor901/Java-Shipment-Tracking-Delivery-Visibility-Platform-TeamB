@@ -19,18 +19,25 @@ import com.ship_track_backend.entity.ShipmentLocationEntity;
 import com.ship_track_backend.entity.UserEntity;
 import com.ship_track_backend.repository.ShipmentLocationRepository;
 import com.ship_track_backend.repository.ShipmentRepository;
+import com.ship_track_backend.service.GeocodeService;
 
 @Service
 public class ShipmentLocationService {
 
-    @Autowired
-    private ShipmentLocationRepository shipmentLocationRepository;
-    @Autowired
-    private ShipmentRepository shipmentRepository;
-    @Autowired
-    private GoogleRoutesService googleRoutesService;
-    @Autowired
-    private NewLocationService newLocationService;
+   @Autowired
+private ShipmentLocationRepository shipmentLocationRepository;
+
+@Autowired
+private ShipmentRepository shipmentRepository;
+
+@Autowired
+private GoogleRoutesService googleRoutesService;
+
+@Autowired
+private NewLocationService newLocationService;
+
+@Autowired
+private GeocodeService geocodeService;
 
 
  // ================= SAVE SHIPMENT LOCATION =================
@@ -105,42 +112,52 @@ public class ShipmentLocationService {
 
     
 // ================= GET LOCATION Pickup to delivery  =================
-public ShipmentLatitudeResponse getLocation(String trackingNumber) {
-    	
-		ShipmentEntity shipment = shipmentRepository
-				.findByTrackingNumber(trackingNumber)
-				.orElseThrow(() ->
-						new ResponseStatusException(
-								HttpStatus.NOT_FOUND,
-								"Shipment not found"
-						)
-				);
-		
-		ShipmentLatitudeResponse shipmentLatitudeResponse= new ShipmentLatitudeResponse();
-		shipmentLatitudeResponse.setPickupLatitude(shipment.getPickupLatitude());
-		shipmentLatitudeResponse.setPickupLongitude(shipment.getPickupLongitude());
-		shipmentLatitudeResponse.setDeliveryLatitude(shipment.getDeliveryLatitude());
-		shipmentLatitudeResponse.setDeliveryLongitude(shipment.getDeliveryLongitude());
-		
-		return shipmentLatitudeResponse;		
-	}
-    
 
-		public ShipmentLocationResponseDto getLatestLocation(   String trackingNumber) {
-		
-		    ShipmentLocationEntity location =  shipmentLocationRepository
-		                    .findTopByShipmentTrackingNumberOrderByRecordedAtDesc(
-		                            trackingNumber
-		                    )
-		                    .orElseThrow(() ->
-		                            new ResponseStatusException(
-		                                    HttpStatus.NOT_FOUND,
-		                                    "No location found for shipment"
-		                            )
-		                    );
-		
-		    return convertToDto(location);
-		}
+public ShipmentLatitudeResponse getLocation(String trackingNumber) {
+
+    ShipmentEntity shipment = shipmentRepository
+            .findByTrackingNumber(trackingNumber)
+            .orElseThrow(() -> new ResponseStatusException(
+                    HttpStatus.NOT_FOUND, "Shipment not found"));
+
+    Double pickupLat = shipment.getPickupLatitude();
+    Double pickupLng = shipment.getPickupLongitude();
+    Double deliveryLat = shipment.getDeliveryLatitude();
+    Double deliveryLng = shipment.getDeliveryLongitude();
+
+        if (pickupLat == null || pickupLng == null
+                || deliveryLat == null || deliveryLng == null) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Pickup or delivery coordinates are missing. Recreate the shipment after fixing geocoding."
+            );
+        }
+
+        ShipmentLatitudeResponse response = new ShipmentLatitudeResponse();
+        response.setPickupLatitude(pickupLat);
+        response.setPickupLongitude(pickupLng);
+        response.setDeliveryLatitude(deliveryLat);
+        response.setDeliveryLongitude(deliveryLng);
+
+        return response;
+    }
+
+
+
+public ShipmentLocationResponseDto getLatestLocation(String trackingNumber) {
+    ShipmentLocationEntity location = shipmentLocationRepository
+            .findTopByShipmentTrackingNumberOrderByRecordedAtDesc(
+                    trackingNumber
+            )
+            .orElseThrow(() ->
+                    new ResponseStatusException(
+                            HttpStatus.NOT_FOUND,
+                            "No location found for shipment"
+                    )
+            );
+
+    return convertToDto(location);
+}
 
 
     // ================= GET LOCATION HISTORY =================

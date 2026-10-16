@@ -69,12 +69,23 @@ private ShipmentLocationRepository shipmentLocationRepository;
 
 System.out.println("Logged-in email: " + email);
 
-UserEntity sender = userRepository.findByEmail(email)
-        .orElseThrow(() -> new ResponseStatusException(
-                HttpStatus.NOT_FOUND,
-                "User not found"
-        ));
+UserEntity sender;
 
+if ("admin@shiptrack.com".equalsIgnoreCase(email)) {
+    Long senderId = createShipmentData.getSenderId();
+
+    sender = userRepository.findById(senderId)
+            .orElseThrow(() -> new ResponseStatusException(
+                    HttpStatus.NOT_FOUND,
+                    "Selected sender/customer not found"
+            ));
+} else {
+    sender = userRepository.findByEmail(email)
+            .orElseThrow(() -> new ResponseStatusException(
+                    HttpStatus.NOT_FOUND,
+                    "User not found"
+            ));
+}
         ShipmentEntity shipment = new ShipmentEntity();
         
         String pickupFullAddress =
@@ -93,12 +104,34 @@ UserEntity sender = userRepository.findByEmail(email)
         GeocodeService.GeoCodeResult pickup = geoCodeService.geocode(pickupFullAddress);
         GeocodeService.GeoCodeResult delivery = geoCodeService.geocode(deliveryFullAddress);
 
+        if (pickup == null
+        || pickup.getLatitude() == null
+        || pickup.getLongitude() == null) {
+    throw new ResponseStatusException(
+            HttpStatus.BAD_REQUEST,
+            "Pickup geocoding failed."
+    );
+}
+
+if (delivery == null
+        || delivery.getLatitude() == null
+        || delivery.getLongitude() == null) {
+    throw new ResponseStatusException(
+            HttpStatus.BAD_REQUEST,
+            "Delivery geocoding failed."
+    );
+}
 
         shipment.setPickupLatitude(pickup.getLatitude());
         shipment.setPickupLongitude(pickup.getLongitude());
 
         shipment.setDeliveryLatitude(delivery.getLatitude());
         shipment.setDeliveryLongitude(delivery.getLongitude());
+
+        System.out.println("Pickup latitude: " + pickup.getLatitude());
+System.out.println("Pickup longitude: " + pickup.getLongitude());
+System.out.println("Delivery latitude: " + delivery.getLatitude());
+System.out.println("Delivery longitude: " + delivery.getLongitude());
 
         System.out.println("Pickup coordinates: "
         + pickup.getLatitude() + ", "

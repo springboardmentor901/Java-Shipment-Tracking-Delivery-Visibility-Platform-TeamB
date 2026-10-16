@@ -3,6 +3,8 @@ import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import "./styles/toast.css";
 
+import MapboxTest from "./components/MapboxTest";
+
 // Public Pages
 import Home from "./pages/Home/Home";
 import Register from "./pages/Auth/Register";

@@ -61,3 +61,6 @@ build/
 
 ### VS Code ###
 .vscode/
+
+ship-track-frontend/.env
+ship-track-backend/uploads/

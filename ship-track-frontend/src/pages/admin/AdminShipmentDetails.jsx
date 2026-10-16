@@ -19,8 +19,9 @@ import {
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-toastify";
 
-import GoogleShipmentMap from "../../components/GoogleShipmentMap";
+import IndiaMap from "../../components/IndiaMap";
 import { getShipmentByIdApi } from "../../services/shipmentService";
+import PODForm from "../../components/pod/PODForm";
 
 import {
   getShipmentLocation,
@@ -42,6 +43,8 @@ const AdminShipmentDetails = () => {
 
   // Google's encoded road route
   const [encodedPolyline, setEncodedPolyline] = useState("");
+
+  const [polyline, setPolyline] = useState(null);
 
   // =========================================================
   // FETCH SHIPMENT DETAILS
@@ -114,214 +117,113 @@ console.log("SHIPMENT DETAILS RESPONSE:", shipmentData);
   // FETCH LOCATION + ROUTE
   // =========================================================
 
-  const fetchShipmentLocationAndRoute = async (
-    trackingNumber
-  ) => {
-    try {
-      setLocationLoading(true);
-      setRouteLoading(true);
-
-      // Clear old route while loading new data
-      setRoute(null);
-      setEncodedPolyline("");
-
-      // =====================================================
-      // STEP 1: GET SHIPMENT LOCATION / COORDINATES
-      // =====================================================
-
-      console.log(
-        "Fetching shipment location:",
-        trackingNumber
-      );
-
-      const locationResponse =
-        await getShipmentLocation(
-          trackingNumber
-        );
-
-      const locationData =
-        locationResponse.data?.data;
-
-      console.log(
-        "SHIPMENT LOCATION DATA:",
-        locationData
-      );
-
-      if (!locationData) {
-        console.warn(
-          "No shipment location data returned."
-        );
-
-        setShipmentLocation(null);
-
-        return;
-      }
-
-      setShipmentLocation(locationData);
-
-      // =====================================================
-      // STEP 2: GET PICKUP / DELIVERY COORDINATES
-      // =====================================================
-
-      const pickupLatitude =
-        locationData.pickupLatitude;
-
-      const pickupLongitude =
-        locationData.pickupLongitude;
-
-      const deliveryLatitude =
-        locationData.deliveryLatitude;
-
-      const deliveryLongitude =
-        locationData.deliveryLongitude;
-
-      console.log(
-        "PICKUP LATITUDE:",
-        pickupLatitude
-      );
-
-      console.log(
-        "PICKUP LONGITUDE:",
-        pickupLongitude
-      );
-
-      console.log(
-        "DELIVERY LATITUDE:",
-        deliveryLatitude
-      );
-
-      console.log(
-        "DELIVERY LONGITUDE:",
-        deliveryLongitude
-      );
-
-      // =====================================================
-      // STEP 3: CHECK COORDINATES
-      // =====================================================
-
-      if (
-        pickupLatitude == null ||
-        pickupLongitude == null ||
-        deliveryLatitude == null ||
-        deliveryLongitude == null
-      ) {
-        console.warn(
-          "Shipment coordinates are missing."
-        );
-
-        return;
-      }
-
-      // =====================================================
-      // STEP 4: CREATE COORDINATE STRINGS
-      // =====================================================
-
-      const origin =
-        `${pickupLatitude},${pickupLongitude}`;
-
-      const destination =
-        `${deliveryLatitude},${deliveryLongitude}`;
-
-      console.log(
-        "ROUTE ORIGIN:",
-        origin
-      );
-
-      console.log(
-        "ROUTE DESTINATION:",
-        destination
-      );
-
-      // =====================================================
-      // STEP 5: CALL GOOGLE ROUTES BACKEND
-      // =====================================================
-
-      const routeResponse =
-        await getShipmentRoute(
-          origin,
-          destination
-        );
-
-      console.log(
-        "FULL ROUTE RESPONSE:",
-        routeResponse.data
-      );
-
-      // =====================================================
-      // STEP 6: GET ROUTES ARRAY
-      // =====================================================
-
-      const routes =
-        routeResponse.data?.data?.routes;
-
-      if (
-        !routes ||
-        routes.length === 0
-      ) {
-        console.warn(
-          "No route returned from backend."
-        );
-
-        return;
-      }
-
-      // =====================================================
-      // STEP 7: GET FIRST ROUTE
-      // =====================================================
-
-      const routeData = routes[0];
-
-      console.log(
-        "ROUTE DATA:",
-        routeData
-      );
-
-      setRoute(routeData);
-
-      // =====================================================
-      // STEP 8: GET ENCODED POLYLINE
-      // =====================================================
-
-      const polyline =
-        routeData?.polyline?.encodedPolyline;
-
-      console.log(
-        "ENCODED POLYLINE:",
-        polyline
-      );
-
-      if (!polyline) {
-        console.warn(
-          "Google route returned without encoded polyline."
-        );
-
-        setEncodedPolyline("");
-
-        return;
-      }
-
-      // =====================================================
-      // STEP 9: STORE POLYLINE
-      // =====================================================
-
-      setEncodedPolyline(polyline);
-
-      console.log(
-        "BLUE ROUTE POLYLINE STORED SUCCESSFULLY"
-      );
-    } catch (error) {
-      console.error(
-        "Error fetching shipment location/route:",
-        error
-      );
-
-      setRoute(null);
-      setEncodedPolyline("");
-    } finally {
-      setLocationLoading(false);
-      setRouteLoading(false);
+const fetchShipmentLocationAndRoute = async (trackingNumber) => {
+  try {
+    if (!trackingNumber) {
+      console.error("Tracking number is missing");
+      return;
     }
-  };
+
+    const locationResponse =
+      await getShipmentLocation(trackingNumber);
+
+    const locationData =
+      locationResponse.data?.data ?? locationResponse.data;
+
+    if (!locationData) {
+      console.error("Location data is missing");
+      return;
+    }
+
+    const pickupLat = Number(locationData.pickupLatitude);
+    const pickupLng = Number(locationData.pickupLongitude);
+    const deliveryLat = Number(locationData.deliveryLatitude);
+    const deliveryLng = Number(locationData.deliveryLongitude);
+
+    if (
+      !Number.isFinite(pickupLat) ||
+      !Number.isFinite(pickupLng) ||
+      !Number.isFinite(deliveryLat) ||
+      !Number.isFinite(deliveryLng) ||
+      Math.abs(pickupLat) > 90 ||
+      Math.abs(deliveryLat) > 90 ||
+      Math.abs(pickupLng) > 180 ||
+      Math.abs(deliveryLng) > 180
+    ) {
+      console.error("Invalid coordinates:", locationData);
+      return;
+    }
+
+    setShipmentLocation(locationData);
+    
+const token = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
+
+if (!token) {
+  console.error("Missing VITE_MAPBOX_ACCESS_TOKEN in frontend .env");
+  setRoute(null);
+  return;
+}
+
+setRouteLoading(true);
+
+try {
+
+const token = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
+
+const response = await fetch(
+  `https://api.mapbox.com/directions/v5/mapbox/driving/${pickupLng},${pickupLat};${deliveryLng},${deliveryLat}?overview=full&geometries=geojson&access_token=${token}`
+);
+
+
+  if (!response.ok) {
+    throw new Error(`Mapbox route request failed: ${response.status}`);
+  }
+
+  const data = await response.json();
+  const routeData = data.routes?.[0];
+
+  console.log("MAPBOX RESPONSE:", data);
+console.log("ROUTE DATA:", routeData);
+console.log("ROUTE COORDINATES:", routeData?.geometry?.coordinates);
+console.log("ROUTE DURATION:", routeData?.duration);
+
+  if (!routeData) {
+    throw new Error("Mapbox returned no driving route.");
+  }
+
+setRoute({
+  distanceMeters: routeData.distance,
+  duration: routeData.duration,
+  geometry: routeData.geometry,
+});
+
+console.log("MAPBOX ROUTE:", routeData);
+console.log("ROUTE DISTANCE:", routeData.distance);
+console.log("ROUTE DURATION:", routeData.duration);
+
+setPolyline(
+  routeData.geometry?.coordinates ?? null
+);
+
+} catch (error) {
+  console.error("Mapbox delivery route failed:", error);
+  setRoute(null);
+  setPolyline(null);
+} finally {
+  setRouteLoading(false);
+}
+    
+  } catch (error) {
+    console.error(
+      "Failed to fetch delivery route:",
+      error.response?.data ?? error.message
+    );
+  }
+};
+
+  
+
+
 
   // =========================================================
   // STATUS
@@ -451,6 +353,61 @@ console.log("SHIPMENT DETAILS RESPONSE:", shipmentData);
   const isCancelled =
     shipment.status?.toUpperCase() === "CANCELLED";
 
+const routeDurationSeconds =
+  route?.duration != null &&
+  Number.isFinite(Number(route.duration)) &&
+  Number(route.duration) > 0
+    ? Number(route.duration)
+    : null;
+
+const estimatedArrival =
+  routeDurationSeconds !== null
+    ? new Date(Date.now() + routeDurationSeconds * 1000)
+    : null;
+
+const formatETA = (date) =>
+  date instanceof Date && !Number.isNaN(date.getTime())
+    ? date.toLocaleString("en-IN", {
+        dateStyle: "medium",
+        timeStyle: "short",
+      })
+    : "Route unavailable";
+
+
+const shipmentStage =
+  shipment.status?.toUpperCase() || "UNKNOWN";
+
+const operationalAssessment = {
+  DELIVERED: {
+    title: "Shipment delivered",
+    description: "The shipment status is marked as delivered.",
+  },
+  CANCELLED: {
+    title: "Shipment cancelled",
+    description: "This shipment is cancelled.",
+  },
+  CREATED: {
+    title: "Awaiting pickup",
+    description: "The shipment has been created but is not yet in transit.",
+  },
+  PICKED_UP: {
+    title: "Pickup completed",
+    description: "Monitor the shipment as it moves toward transit.",
+  },
+  IN_TRANSIT: {
+    title: "In transit",
+    description: "Compare actual progress with the planned delivery schedule.",
+  },
+  OUT_FOR_DELIVERY: {
+    title: "Out for delivery",
+    description: "The shipment is in its final delivery stage.",
+  },
+}[shipmentStage] || {
+  title: "Status unavailable",
+  description: "Update the shipment status to assess its current stage.",
+};
+
+
   // =========================================================
   // RETURN
   // =========================================================
@@ -565,6 +522,16 @@ console.log("SHIPMENT DETAILS RESPONSE:", shipmentData);
                   {shipment.senderEmail || "-"}
                 </p>
               </div>
+<div className="mt-1 flex items-start gap-1.5">
+  <Phone
+    size={13}
+    className="mt-0.5 shrink-0 text-slate-400"
+  />
+  <p className="break-all text-xs text-slate-500">
+    {shipment.senderPhone || "-"}
+  </p>
+</div>
+
             </div>
 
             {/* RECEIVER */}
@@ -828,14 +795,15 @@ console.log("SHIPMENT DETAILS RESPONSE:", shipmentData);
                     <span className="block text-[10px] font-semibold uppercase tracking-wider text-slate-400">
                       Travel Time
                     </span>
+<span className="text-sm font-bold text-slate-900">
+  {routeLoading
+    ? "Loading..."
+    : Number.isFinite(Number(route?.duration)) &&
+      Number(route.duration) > 0
+    ? `${(Number(route.duration) / 3600).toFixed(2)} hours`
+    : "--"}
+</span>
 
-                    <span className="text-sm font-bold text-slate-900">
-                      {routeLoading
-                        ? "Loading..."
-                        : route?.duration
-                        ? formatRouteDuration(route.duration)
-                        : "-"}
-                    </span>
                   </div>
                 </div>
 
@@ -851,72 +819,42 @@ console.log("SHIPMENT DETAILS RESPONSE:", shipmentData);
                       Route Status
                     </span>
 
-                    <span className="text-sm font-bold text-emerald-700">
-                      {encodedPolyline
-                        ? "Route Available"
-                        : "Route Pending"}
-                    </span>
+
+<span className="text-sm font-bold text-emerald-700">
+  {route?.geometry?.coordinates?.length > 1 &&
+  Number(route?.duration) > 0
+    ? "Route Available"
+    : routeLoading
+      ? "Calculating Route..."
+      : "Route Unavailable"}
+</span>
+
+
                   </div>
                 </div>
               </div>
             )}
 
-            {/* =================================================
-                GOOGLE MAP
-            ================================================= */}
+{/* INDIA MAP */}
+<div className="h-[500px] w-full overflow-hidden rounded-lg border border-slate-200">
+  <IndiaMap
+    pickupLatitude={
+      shipmentLocation?.pickupLatitude ?? shipment?.pickupLatitude
+    }
+    pickupLongitude={
+      shipmentLocation?.pickupLongitude ?? shipment?.pickupLongitude
+    }
+    deliveryLatitude={
+      shipmentLocation?.deliveryLatitude ?? shipment?.deliveryLatitude
+    }
+    deliveryLongitude={
+      shipmentLocation?.deliveryLongitude ?? shipment?.deliveryLongitude
+    }
+  />
+</div>
 
-            <div className="bg-slate-50 p-3">
-              {locationLoading ? (
-                <div className="flex h-[360px] items-center justify-center rounded-lg border border-dashed border-slate-300 bg-white">
-                  <div className="text-center">
-                    <div className="mx-auto mb-3 h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-emerald-600" />
+</section>
 
-                    <p className="text-xs text-slate-500">
-                      Loading shipment map...
-                    </p>
-                  </div>
-                </div>
-              ) : shipmentLocation ? (
-                <div className="overflow-hidden rounded-lg border border-slate-200">
-                  <GoogleShipmentMap
-                    pickupLatitude={
-                      shipmentLocation.pickupLatitude
-                    }
-                    pickupLongitude={
-                      shipmentLocation.pickupLongitude
-                    }
-                    deliveryLatitude={
-                      shipmentLocation.deliveryLatitude
-                    }
-                    deliveryLongitude={
-                      shipmentLocation.deliveryLongitude
-                    }
-                    encodedPolyline={
-                      encodedPolyline
-                    }
-                  />
-                </div>
-              ) : (
-                <div className="flex h-[360px] items-center justify-center rounded-lg bg-white">
-                  <div className="text-center">
-                    <MapPin
-                      size={32}
-                      className="mx-auto mb-2 text-slate-300"
-                    />
-
-                    <p className="text-xs font-medium text-slate-600">
-                      No live location data available
-                    </p>
-
-                    <p className="mt-1 text-[11px] text-slate-400">
-                      Location information has not been received
-                      for this shipment.
-                    </p>
-                  </div>
-                </div>
-              )}
-            </div>
-          </section>
 
           {/* =================================================
               DELIVERY FORECAST + DELAY ASSESSMENT
@@ -928,73 +866,78 @@ console.log("SHIPMENT DETAILS RESPONSE:", shipmentData);
               Therefore no fake prediction values are shown.
           ================================================= */}
 
-          <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+         
+{/* DELIVERY FORECAST */}
 
-            {/* DELIVERY FORECAST */}
+<div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+  <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+    <div className="flex items-center gap-2 border-b border-slate-100 bg-slate-50/50 px-4 py-3">
+      <TrendingUp size={17} className="text-emerald-600" />
+      <div>
+        <h2 className="text-sm font-semibold text-slate-800">
+          Delivery Forecast
+        </h2>
+        <p className="text-[11px] text-slate-400">
+          Route-based estimated arrival
+        </p>
+      </div>
+    </div>
 
-            <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-              <div className="flex items-center gap-2 border-b border-slate-100 bg-slate-50/50 px-4 py-3">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50">
-                  <TrendingUp
-                    size={16}
-                    className="text-emerald-600"
-                  />
-                </div>
+    <div className="grid grid-cols-2 gap-3 p-4">
+      <div className="rounded-lg bg-slate-50 p-3">
+        <p className="text-[10px] uppercase text-slate-400">
+          Road distance
+        </p>
+        <p className="mt-1 text-sm font-bold text-slate-800">
+          {route?.distanceMeters != null
+            ? `${(Number(route.distanceMeters) / 1000).toFixed(1)} km`
+            : "Waiting for route"}
+        </p>
+      </div>
 
-                <div>
-                  <h2 className="text-sm font-semibold text-slate-800">
-                    Delivery Forecast
-                  </h2>
+      <div className="rounded-lg bg-slate-50 p-3">
+        <p className="text-[10px] uppercase text-slate-400">
+          Driving time
+        </p>
+     
 
-                  <p className="text-[11px] text-slate-400">
-                    Route-based delivery information
-                  </p>
-                </div>
-              </div>
+<p className="mt-1 text-sm font-bold text-slate-800">
+  {Number.isFinite(Number(route?.duration)) &&
+  Number(route.duration) > 0
+    ? `${(Number(route.duration) / 3600).toFixed(2)} hours`
+    : "Travel time unavailable"}
+</p>
 
-              <div className="p-4">
-                <div className="grid grid-cols-2 gap-3">
 
-                  <div className="rounded-lg bg-slate-50 px-3 py-2.5">
-                    <p className="text-[10px] uppercase tracking-wide text-slate-400">
-                      Route Distance
-                    </p>
+      </div>
 
-                    <p className="mt-1 text-sm font-bold text-slate-800">
-                      {routeLoading
-                        ? "Loading..."
-                        : route?.distanceMeters
-                        ? `${(
-                            route.distanceMeters / 1000
-                          ).toFixed(1)} km`
-                        : "-"}
-                    </p>
-                  </div>
+      <div className="col-span-2 rounded-lg bg-emerald-50 p-3">
+        <p className="text-[10px] uppercase text-emerald-700">
+          Estimated arrival
+        </p>
+    
+<p className="mt-1 text-sm font-bold text-emerald-800">
+  {routeLoading
+    ? "Calculating..."
+    : Number.isFinite(Number(route?.duration)) &&
+      Number(route?.duration) > 0
+      ? formatETA(
+          new Date(Date.now() + Number(route.duration) * 1000)
+        )
+      : "Route duration unavailable"}
+</p>
 
-                  <div className="rounded-lg bg-slate-50 px-3 py-2.5">
-                    <p className="text-[10px] uppercase tracking-wide text-slate-400">
-                      Route Time
-                    </p>
+      </div>
+    </div>
 
-                    <p className="mt-1 text-sm font-bold text-slate-800">
-                      {routeLoading
-                        ? "Loading..."
-                        : route?.duration
-                        ? formatRouteDuration(
-                            route.duration
-                          )
-                        : "-"}
-                    </p>
-                  </div>
+    <p className="px-4 pb-4 text-[11px] leading-relaxed text-slate-500">
+      Estimated using route duration from the current time.
+      Traffic, handling time and delivery schedules are not included.
+    </p>
+  </section>
+</div>
 
-                </div>
 
-                <p className="mt-3 text-[11px] leading-relaxed text-slate-400">
-                  This page currently provides route information only.
-                  Delivery forecasting is not requested by this component.
-                </p>
-              </div>
-            </section>
 
             {/* DELAY ASSESSMENT */}
 
@@ -1017,32 +960,62 @@ console.log("SHIPMENT DETAILS RESPONSE:", shipmentData);
                   </p>
                 </div>
               </div>
+<div className="flex min-h-[132px] items-center justify-center p-4 text-center">
+    <ShieldAlert
+      size={27}
+      className="mx-auto text-emerald-600"
+    />
 
-              <div className="flex min-h-[132px] items-center justify-center p-4 text-center">
-                <div>
-                  <ShieldAlert
-                    size={27}
-                    className="mx-auto text-slate-300"
-                  />
+    <p className="mt-2 text-sm font-semibold text-slate-700">
+      {shipment.status?.toUpperCase() === "DELIVERED"
+        ? "Shipment delivered"
+        : route?.duration != null &&
+          Number.isFinite(Number(route.duration)) &&
+          Number(route.duration) > 0
+        ? estimatedArrival &&
+          !Number.isNaN(new Date(estimatedArrival).getTime())
+          ? new Date(estimatedArrival) < new Date()
+            ? "Potential delay — estimated arrival has passed"
+            : "On-time estimate based on current route"
+          : "Route available — calculating ETA"
+        : "Delay assessment unavailable"}
+    </p>
 
-                  <p className="mt-2 text-xs font-semibold text-slate-600">
-                    Delay prediction unavailable
-                  </p>
+    <p className="mt-1 text-[10px] leading-relaxed text-slate-500">
+      {shipment.status?.toUpperCase() === "DELIVERED"
+        ? "The shipment is marked as delivered."
+        : route?.duration != null &&
+          Number.isFinite(Number(route.duration)) &&
+          Number(route.duration) > 0
+        ? "Assessment is based on the current route duration and estimated arrival. It does not use live traffic."
+        : "A reliable assessment requires valid route duration data."}
+    </p>
+  </div>
 
-                  <p className="mt-1 text-[10px] leading-relaxed text-slate-400">
-                    This Admin Shipment Details page does not currently
-                    request delay prediction data.
-                  </p>
-                </div>
-              </div>
-            </section>
+  {/* PROOF OF DELIVERY */}
+{shipment.status?.toUpperCase() === "DELIVERED" && (
+  <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+    <div className="border-b border-slate-100 bg-slate-50/50 px-4 py-3">
+      <h2 className="text-sm font-semibold text-slate-800">
+        Proof of Delivery (POD)
+      </h2>
+      <p className="text-[11px] text-slate-400">
+        Capture the delivered parcel photo and receiver signature
+      </p>
+    </div>
 
+    <div className="p-4">
+      <PODForm trackingNumber={shipment.trackingNumber} />
+    </div>
+  </section>
+)}
+
+                       </section>
           </div>
         </div>
 
         {/* ===================================================
             RIGHT 1/3 — PROGRESSION LOG
-            Spans beside both map and lower cards.
         =================================================== */}
 
         <aside className="lg:col-span-1">
@@ -1136,13 +1109,12 @@ console.log("SHIPMENT DETAILS RESPONSE:", shipmentData);
                               {formatStatus(step)}
                             </span>
 
-                            {current && (
+                                                       {current && (
                               <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-[9px] font-bold text-emerald-700">
                                 CURRENT
                               </span>
                             )}
                           </div>
-
                         </div>
                       );
                     })}
@@ -1153,7 +1125,6 @@ console.log("SHIPMENT DETAILS RESPONSE:", shipmentData);
           </div>
         </aside>
       </div>
-    </div>
   );
 };
 
@@ -1166,22 +1137,17 @@ const formatRouteDuration = (duration) => {
     return "-";
   }
 
-  /*
-   * Google Routes API duration can arrive as:
-   * "1234s"
-   */
-
-  if (typeof duration === "string" && duration.endsWith("s")) {
+  if (
+    typeof duration === "string" &&
+    duration.endsWith("s")
+  ) {
     const totalSeconds = parseInt(
       duration.replace("s", ""),
       10
     );
 
     if (!Number.isNaN(totalSeconds)) {
-      const hours = Math.floor(
-        totalSeconds / 3600
-      );
-
+      const hours = Math.floor(totalSeconds / 3600);
       const minutes = Math.floor(
         (totalSeconds % 3600) / 60
       );

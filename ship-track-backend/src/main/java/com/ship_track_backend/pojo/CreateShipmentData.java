@@ -13,6 +13,7 @@ import lombok.Setter;
 @Setter
 public class CreateShipmentData {
 
+    private Long senderId;
     // ================= RECEIVER DETAILS =================
 
     @NotBlank(message = "Receiver name is required")

@@ -1,0 +1,33 @@
+[33mec6c2cd[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mKalind[m[33m)[m Update POD functionality and Mapbox integration
+ .../controller/PodController.java                  | 141 [32m+++++[m
+ .../com/ship_track_backend/entity/PodEntity.java   |  37 [32m++[m
+ .../pojo/CreateShipmentData.java                   |   1 [32m+[m
+ .../repository/PodRepository.java                  |  14 [32m+[m
+ .../security/SecurityConfig.java                   |  65 [32m+[m[31m-[m
+ .../ship_track_backend/service/GeocodeService.java | 691 [32m+++[m[31m------------------[m
+ .../service/NewLocationService.java                |  36 [32m+[m[31m-[m
+ .../com/ship_track_backend/service/PodService.java |  86 [32m+++[m
+ .../service/ShipmentLocationService.java           | 101 [32m+[m[31m--[m
+ .../service/ShipmentService.java                   |  45 [32m+[m[31m-[m
+ .../src/main/resources/application.properties      |   4 [32m+[m[31m-[m
+ ...6eead-c416-47be-9825-a988b6443f76_signature.png | Bin [31m0[m -> [32m8670[m bytes
+ ...539b7-d218-4ae8-b6cb-a3a1a6ee96cf_signature.jpg | Bin [31m0[m -> [32m20806[m bytes
+ ...10d-4ac1-98ad-390d1fa0b65e_delivered-parcel.jpg | Bin [31m0[m -> [32m25049[m bytes
+ ...ce038-f3e5-4863-a31b-39a7fc419e30_signature.png | Bin [31m0[m -> [32m13910[m bytes
+ ...b5ed9-045a-4f32-ad80-265427b443a9_signature.png | Bin [31m0[m -> [32m14638[m bytes
+ ...a7d901-bcd9-4f00-b7c2-21b84a01f511_delivery.png | Bin [31m0[m -> [32m270807[m bytes
+ ...0d1f7-623f-4a93-9b27-6ebb5b1c8ba4_signature.png | Bin [31m0[m -> [32m12754[m bytes
+ ...9a9-4c8f-807d-9dc92e591bdb_delivered-parcel.jpg | Bin [31m0[m -> [32m29657[m bytes
+ ...351-4ebd-9f6c-262ddd47d07b_delivered-parcel.jpg | Bin [31m0[m -> [32m40050[m bytes
+ ...668-4ac8-92ae-42671d5c27a6_delivered-parcel.jpg | Bin [31m0[m -> [32m35656[m bytes
+ ship-track-frontend/.env                           |   1 [32m+[m
+ ship-track-frontend/package-lock.json              | 377 [32m++++++++++[m[31m-[m
+ ship-track-frontend/package.json                   |   5 [32m+[m
+ ship-track-frontend/src/App.jsx                    |   2 [32m+[m
+ ship-track-frontend/src/components/IndiaMap.jsx    | 222 [32m+++++++[m
+ ship-track-frontend/src/components/MapboxTest.jsx  |  37 [32m++[m
+ ship-track-frontend/src/components/pod/PODForm.jsx | 473 [32m++++++++++++++[m
+ .../src/pages/admin/AdminShipmentDetails.jsx       | 656 [32m++++++++++[m[31m---------[m
+ .../src/pages/admin/CreateShipment.jsx             | 109 [32m++[m[31m--[m
+ .../src/services/shipmentService.js                |   4 [32m+[m
+ 31 files changed, 2028 insertions(+), 1079 deletions(-)

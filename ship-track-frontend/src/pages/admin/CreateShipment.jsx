@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "react-toastify";
 
 import {
@@ -10,14 +10,44 @@ import {
   Loader2,
 } from "lucide-react";
 
-import { createShipmentApi } from "../../services/shipmentService";
+import {
+  createShipmentApi,
+  getAdminUsersApi
+} from "../../services/shipmentService";
 
 const CreateShipment = () => {
   const [loading, setLoading] = useState(false);
+  const [customers, setCustomers] = useState([]);
+const [customersLoading, setCustomersLoading] = useState(true);
+
+
+useEffect(() => {
+  const fetchCustomers = async () => {
+    try {
+      const response = await getAdminUsersApi();
+      const data = response.data.data ?? response.data;
+
+      setCustomers(
+        Array.isArray(data)
+          ? data.filter((user) => user.role === "CUSTOMER")
+          : []
+      );
+    } catch (error) {
+      console.error("Failed to load customers:", error);
+      toast.error("Could not load customers.");
+    } finally {
+      setCustomersLoading(false);
+    }
+  };
+
+  fetchCustomers();
+}, []);
+
 
   const [formData, setFormData] = useState({
-    receiverName: "",
-    receiverPhone: "",
+  senderId: "",
+  receiverName: "",
+  receiverPhone: "",
 
     pickupAddress: "",
     pickupCity: "",
@@ -45,22 +75,29 @@ const CreateShipment = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (
-      !formData.receiverName ||
-      !formData.receiverPhone ||
-      !formData.pickupAddress ||
-      !formData.pickupCity ||
-      !formData.pickupState ||
-      !formData.pickupPincode ||
-      !formData.deliveryAddress ||
-      !formData.deliveryCity ||
-      !formData.deliveryState ||
-      !formData.deliveryPincode ||
-      !formData.weight
-    ) {
-      toast.error("Please fill all required fields.");
-      return;
-    }
+if (
+  !formData.senderId?.toString().trim() ||
+  !formData.receiverName?.trim() ||
+  !formData.receiverPhone?.trim() ||
+  !formData.pickupAddress?.trim() ||
+  !formData.pickupCity?.trim() ||
+  !formData.pickupState?.trim() ||
+  !formData.pickupPincode?.trim() ||
+  !formData.deliveryAddress?.trim() ||
+  !formData.deliveryCity?.trim() ||
+  !formData.deliveryState?.trim() ||
+  !formData.deliveryPincode?.trim() ||
+  !formData.packageDescription?.trim() ||
+  !formData.weight?.toString().trim()
+) {
+  const missingFields = Object.entries(formData)
+  .filter(([key, value]) => !String(value ?? "").trim())
+  .map(([key]) => key);
+
+toast.error("Missing fields: " + missingFields.join(", "));
+  return;
+}
+
 
     try {
       setLoading(true);
@@ -69,23 +106,21 @@ const CreateShipment = () => {
       if (response.data.success === true) {
         toast.success("Shipment created successfully!");
 
-        setFormData({
-          receiverName: "",
-          receiverPhone: "",
-
-          pickupAddress: "",
-          pickupCity: "",
-          pickupState: "",
-          pickupPincode: "",
-
-          deliveryAddress: "",
-          deliveryCity: "",
-          deliveryState: "",
-          deliveryPincode: "",
-
-          packageDescription: "",
-          weight: "",
-        });
+setFormData({
+  senderId: "",
+  receiverName: "",
+  receiverPhone: "",
+  pickupAddress: "",
+  pickupCity: "",
+  pickupState: "",
+  pickupPincode: "",
+  deliveryAddress: "",
+  deliveryCity: "",
+  deliveryState: "",
+  deliveryPincode: "",
+  packageDescription: "",
+  weight: "",
+});
       } else {
         toast.error(
           response.data.message || "Failed to create shipment."
